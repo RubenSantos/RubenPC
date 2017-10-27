@@ -15,6 +15,7 @@ namespace Serie1
         TimeSpan timeToLive;
         int startingTicks;
         bool inProcess;
+        private T tValue;
 
         public ExpirableLazy(Func<T> provider, TimeSpan timeToLive)
         {
@@ -27,10 +28,10 @@ namespace Serie1
             get {
                 lock (monitor) 
                 {
-                    if (Value != null 
+                    if (tValue != null 
                         && SynchUtils.RemainingTimeout(startingTicks, timeToLive.Ticks) > 0)
-                        return Value;
-                    if (Value == null 
+                        return tValue;
+                    if (tValue == null 
                         || SynchUtils.RemainingTimeout(startingTicks, timeToLive.Ticks) == 0)
                     {
                         while (inProcess)
@@ -38,7 +39,7 @@ namespace Serie1
                         inProcess = true;
                         try
                         {
-                            Value = provider();
+                            tValue = provider();
                         }
                         catch
                         {
@@ -48,15 +49,15 @@ namespace Serie1
                         }
                         inProcess = false;
                         Monitor.PulseAll(monitor);
-                        return Value;
+                        return tValue;
                     }
                 }
-                return Value;
+                return tValue;
             }
 
             private set
             {
-                Value = value;
+                tValue = value;
                 startingTicks = Environment.TickCount;
             }
         }
