@@ -29,10 +29,10 @@ namespace Serie1
                 lock (monitor) 
                 {
                     if (tValue != null 
-                        && SynchUtils.RemainingTimeout(startingTicks, timeToLive.Ticks) > 0)
+                        && SynchUtils.RemainingTimeout(startingTicks, (int)timeToLive.Ticks) > 0)
                         return tValue;
                     if (tValue == null 
-                        || SynchUtils.RemainingTimeout(startingTicks, timeToLive.Ticks) == 0)
+                        || SynchUtils.RemainingTimeout(startingTicks, (int)timeToLive.Ticks) == 0)
                     {
                         while (inProcess)
                             Monitor.Wait(monitor);

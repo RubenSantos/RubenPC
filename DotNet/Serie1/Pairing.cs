@@ -15,15 +15,15 @@ namespace Serie1
         private List<MyTupleWrapper> list = new List<MyTupleWrapper>();
         private class MyTupleWrapper
         {
-            internal T t;
-            internal U u; 
+            internal T tValue;
+            internal U uValue; 
 
             internal Tuple<T, U> tuple;
             
-            //internal bool IsFulfilled()
-            //{
-            //    return t != null & u != null;
-            //}
+            internal bool IsFulfilled()
+            {
+                return tValue != null & uValue != null;
+            }
         }
 
         Tuple<T, U> tuple = new Tuple<T, U>(null, null);
@@ -32,102 +32,78 @@ namespace Serie1
         {
             lock (monitor)
             {
-                MyTupleWrapper myT = list.Find(t => t.u != null);
-                if (myT != null)
+                MyTupleWrapper myTupleWrapper = list.Find(mtw => mtw.uValue != null);
+                if (myTupleWrapper != null)
                 {
-                    list.Remove(myT);
-                    myT.tuple = new Tuple<T, U>(myT.t, myT.u);
-                    monitor.Signal(myT);
-                    return myT.tuple;
+                    list.Remove(myTupleWrapper);
+                    monitor.Signal(myTupleWrapper);
+                    myTupleWrapper.tuple = new Tuple<T, U>(value, myTupleWrapper.uValue);
+                    return myTupleWrapper.tuple;
                 }
-                myT = new MyTupleWrapper();
-                myT.t = value;
+                myTupleWrapper = new MyTupleWrapper();
+                myTupleWrapper.tValue = value;
+                list.Add(myTupleWrapper);
                 do
                 {
+                    timeout = SynchUtils.RemainingTimeout(Environment.TickCount, timeout);
                     try
                     {
-                        if (!monitor.Await(myT, timeout))
-                            throw new TimeoutException();
-                        if (myT.tuple != null)
-                            return myT.tuple;
+                        if (!monitor.Await(myTupleWrapper, timeout))
+                            if(!myTupleWrapper.IsFulfilled())
+                                throw new TimeoutException();
                     }
-                    catch(TimeoutException)
+                    catch
                     {
-                        RemoveT(myT);
+                        if (myTupleWrapper.IsFulfilled())
+                        {
+                            Thread.CurrentThread.Interrupt();
+                            return myTupleWrapper.tuple;
+                        }
+                        list.Remove(myTupleWrapper);
                         throw;
                     }
-                    catch (ThreadInterruptedException)
-                    {
-                        RemoveT(myT);
-                        throw;
-                    }
-                   
-                } while (true);
+
+                } while (!myTupleWrapper.IsFulfilled());
+                return myTupleWrapper.tuple;
             }
         }
 
         public Tuple<T, U> Provide(U value, int timeout)
         {
-
             lock (monitor)
             {
-                MyTupleWrapper myT = list.Find(t => t.u != null);
-                if (myT != null)
+                MyTupleWrapper myTupleWrapper = list.Find(mtw => mtw.tValue != null);
+                if(myTupleWrapper != null)
                 {
-                    list.Remove(myT);
-                    myT.tuple = new Tuple<T, U>(myT.t, myT.u);
-                    monitor.Signal(myT);
-                    return myT.tuple;
+                    list.Remove(myTupleWrapper);
+                    monitor.Signal(myTupleWrapper);
+                    myTupleWrapper.tuple = new Tuple<T, U>(myTupleWrapper.tValue, value);
+                    return myTupleWrapper.tuple;
                 }
-                myT = new MyTupleWrapper();
-                myT.u = value;
+                myTupleWrapper = new MyTupleWrapper();
+                myTupleWrapper.uValue = value;
+                list.Add(myTupleWrapper);
                 do
                 {
+                    timeout = SynchUtils.RemainingTimeout(Environment.TickCount, timeout);
                     try
                     {
-                        if (!monitor.Await(myT, timeout))
-                            throw new TimeoutException();
-                        if (myT.tuple != null)
-                            return myT.tuple;
+                        if (!monitor.Await(myTupleWrapper))
+                            if (!myTupleWrapper.IsFulfilled())
+                                throw new TimeoutException();
                     }
-                    catch (TimeoutException)
+                    catch
                     {
-                        RemoveU(myT);
+                        if (myTupleWrapper.IsFulfilled())
+                        {
+                            Thread.CurrentThread.Interrupt();
+                            return myTupleWrapper.tuple;
+                        }
+                        list.Remove(myTupleWrapper);
                         throw;
                     }
-                    catch (ThreadInterruptedException)
-                    {
-                        RemoveU(myT);
-                        throw;
-                    }
-
-                } while (true);
-            }
-        }
-
-        private void RemoveU(MyTupleWrapper myT)
-        {
-            if (myT.tuple != null)
-            {
-                myT.tuple = null;
-                myT.u = null;
-            }
-            else
-            {
-                list.Remove(myT);
-            }
-        }
-
-        private void RemoveT(MyTupleWrapper myT)
-        {
-            if (myT.tuple != null)
-            {
-                myT.tuple = null;
-                myT.t = null;
-            }
-            else
-            {
-                list.Remove(myT);
+                } while (!myTupleWrapper.IsFulfilled());
+                return myTupleWrapper.tuple;
             }
         }
     }

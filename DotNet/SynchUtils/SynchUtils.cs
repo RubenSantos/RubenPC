@@ -5,22 +5,17 @@ namespace Utils
 {
     public static class SynchUtils {
         public static int RemainingTimeout(int refTime, int timeout) {
-            return (int)RemainingTimeout(refTime, (long)timeout);
-        }
-
-        public static long RemainingTimeout(int refTime, long timeout)
-        {
             if (timeout == Timeout.Infinite) return timeout;
             return Math.Max(0, timeout - (Environment.TickCount - refTime));
         }
 
 
-        private static bool EnterUninterruptible(object obj, out bool interrupted) {
+        private static void EnterUninterruptible(object obj, out bool interrupted) {
             interrupted = false;
             do {
                 try {
                     Monitor.Enter(obj);
-
+                    return;
                 }
                 catch (ThreadInterruptedException) {
                     interrupted = true;
@@ -29,14 +24,14 @@ namespace Utils
             while (true);
         }
 
-        public static void Wait(this object monitor, object cond, int timeout) {
+        public static bool Await(this object monitor, object cond, int timeout) {
             if (monitor == cond) {
-                Monitor.Wait(monitor, timeout);
+                return Monitor.Wait(monitor, timeout);
             }
             Monitor.Enter(cond);
             Monitor.Exit(monitor);
             try {
-                Monitor.Wait(cond, timeout);
+                return Monitor.Wait(cond, timeout);
             }
             finally {
                 bool interrupted;
@@ -47,8 +42,8 @@ namespace Utils
             }
         }
 
-        public static void Wait(this object monitor, object cond) {
-            monitor.Wait(cond, Timeout.Infinite);
+        public static bool Await(this object monitor, object cond) {
+            return monitor.Await(cond, Timeout.Infinite);
         }
 
         public static void Signal(this object monitor, object cond) {
