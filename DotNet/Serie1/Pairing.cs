@@ -19,11 +19,6 @@ namespace Serie1
             internal U uValue; 
 
             internal Tuple<T, U> tuple;
-            
-            internal bool IsFulfilled()
-            {
-                return tValue != null & uValue != null;
-            }
         }
 
         Tuple<T, U> tuple = new Tuple<T, U>(null, null);
@@ -49,12 +44,12 @@ namespace Serie1
                     try
                     {
                         if (!monitor.Await(myTupleWrapper, timeout))
-                            if(!myTupleWrapper.IsFulfilled())
+                            if(myTupleWrapper.tuple == null)
                                 throw new TimeoutException();
                     }
                     catch
                     {
-                        if (myTupleWrapper.IsFulfilled())
+                        if (myTupleWrapper.tuple != null)
                         {
                             Thread.CurrentThread.Interrupt();
                             return myTupleWrapper.tuple;
@@ -63,7 +58,7 @@ namespace Serie1
                         throw;
                     }
 
-                } while (!myTupleWrapper.IsFulfilled());
+                } while (myTupleWrapper.tuple == null);
                 return myTupleWrapper.tuple;
             }
         }
@@ -89,12 +84,12 @@ namespace Serie1
                     try
                     {
                         if (!monitor.Await(myTupleWrapper))
-                            if (!myTupleWrapper.IsFulfilled())
+                            if (myTupleWrapper.tuple == null)
                                 throw new TimeoutException();
                     }
                     catch
                     {
-                        if (myTupleWrapper.IsFulfilled())
+                        if (myTupleWrapper.tuple != null)
                         {
                             Thread.CurrentThread.Interrupt();
                             return myTupleWrapper.tuple;
@@ -102,7 +97,7 @@ namespace Serie1
                         list.Remove(myTupleWrapper);
                         throw;
                     }
-                } while (!myTupleWrapper.IsFulfilled());
+                } while (myTupleWrapper == null);
                 return myTupleWrapper.tuple;
             }
         }

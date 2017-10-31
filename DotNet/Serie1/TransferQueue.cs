@@ -26,18 +26,18 @@ namespace Serie1
         {
             lock (monitor)
             {
-                queue.AddLast(msg);
+                LinkedListNode<T> listNode = queue.AddLast(msg);
                 monitor.Signal(queue);
                 try
                 {
                     do
                     {
-                        timeout = SynchUtils.RemainingTimeout(Environment.TickCount, timeout);
-                        if (!monitor.Await(msg, timeout) && queue.Contains(msg))
+                        if (!monitor.Await(listNode, timeout) && queue.Contains(msg))
                         {
                             queue.Remove(msg);
                             return false;
                         }
+                        timeout = SynchUtils.RemainingTimeout(Environment.TickCount, timeout);
                     } while (queue.Contains(msg));
                 }
                 catch(ThreadInterruptedException)
@@ -59,25 +59,28 @@ namespace Serie1
         {
             lock (monitor)
             {
-                if(queue.Count > 0)
+                LinkedListNode<T> linkedListNode;
+                if (queue.Count > 0)
                 {
-                    rmsg = queue.First.Value;
+                    linkedListNode = queue.First;
+                    rmsg = linkedListNode.Value;
                     queue.RemoveFirst();
-                    monitor.Signal(rmsg);
+                    monitor.Signal(linkedListNode);
                     return true;
                 }
                 do
                 {
-                    timeout = SynchUtils.RemainingTimeout(Environment.TickCount, timeout);
                     if(!monitor.Await(queue, timeout))
                     {
                         rmsg = default(T);
                         return false;
                     }
+                    timeout = SynchUtils.RemainingTimeout(Environment.TickCount, timeout);
                 } while (queue.Count == 0);
-                rmsg = queue.First.Value;
+                linkedListNode = queue.First;
+                rmsg = linkedListNode.Value;
                 queue.RemoveFirst();
-                monitor.Signal(rmsg);
+                monitor.Signal(linkedListNode);
                 return true;
             }
         }

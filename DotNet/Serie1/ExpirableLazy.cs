@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -13,7 +14,7 @@ namespace Serie1
         object monitor = new object();
         Func<T> provider;
         TimeSpan timeToLive;
-        int startingTicks;
+        Stopwatch stopwatch;
         bool inProcess;
         private T tValue;
 
@@ -29,10 +30,10 @@ namespace Serie1
                 lock (monitor) 
                 {
                     if (tValue != null 
-                        && SynchUtils.RemainingTimeout(startingTicks, (int)timeToLive.Ticks) > 0)
+                        && stopwatch.Elapsed < timeToLive)
                         return tValue;
                     if (tValue == null 
-                        || SynchUtils.RemainingTimeout(startingTicks, (int)timeToLive.Ticks) == 0)
+                        || stopwatch.Elapsed > timeToLive)
                     {
                         while (inProcess)
                             Monitor.Wait(monitor);
@@ -40,6 +41,7 @@ namespace Serie1
                         try
                         {
                             tValue = provider();
+                            stopwatch = Stopwatch.StartNew();
                         }
                         catch
                         {
@@ -53,12 +55,6 @@ namespace Serie1
                     }
                 }
                 return tValue;
-            }
-
-            private set
-            {
-                tValue = value;
-                startingTicks = Environment.TickCount;
             }
         }
     }
