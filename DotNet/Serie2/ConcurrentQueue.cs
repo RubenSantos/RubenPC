@@ -2,34 +2,82 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Serie2
 {
     public class ConcurrentQueue<T> where T: class
     {
-        Queue<T> queue;
+        private class Node
+        {
+            internal readonly T item;
+            internal volatile Node next;
+
+            internal Node(T item, Node next)
+            {
+                this.item = item;
+                this.next = next;
+            }
+        }
+
+        private readonly Node dummy;
+        private volatile Node head;
+        private volatile Node tail;
 
         public ConcurrentQueue()
         {
-            queue = new Queue<T>();
+            dummy = new Node(null, null);
+            head = dummy;
+            tail = dummy;
+
         }
 
         public void Put(T t)
         {
-            queue.Enqueue(t);
+            Node newNode = new Node(t, null);
+            while (true)
+            {
+                Node currTail = tail;
+                Node tailNext = currTail.next;
+                if(currTail == tail)
+                {
+                    if(tailNext != null)
+                    {
+                        Interlocked.CompareExchange(ref tail, tailNext, currTail);
+                    }
+                    else
+                    {
+                        if(Interlocked.CompareExchange(ref currTail.next, newNode, null) == newNode)
+                        {
+                            Interlocked.CompareExchange(ref tail, newNode, currTail);
+                            return;
+                        }
+                    }
+                }
+            }
         }
 
         public T TryTake()
         {
-            if(IsEmpty())
-                return null;
-            return queue.Dequeue();
+            while (true)
+            {
+                Node currHead = head;
+                Node headNext = currHead.next;
+                if(headNext == null)
+                {
+                    return null;
+                }
+                if(Interlocked.CompareExchange(ref head, headNext, currHead) == currHead)
+                {
+                    return currHead.item;
+                }
+            }
         }
 
         public bool IsEmpty()
         {
-            return queue.Count > 0;
+            return head.Equals(tail);
         }
     }
 }

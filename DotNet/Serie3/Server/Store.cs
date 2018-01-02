@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Tracker
 {
@@ -55,11 +56,15 @@ namespace Tracker
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
-        public void Set(string key, string value)
+        public async Task Set(string key, string value)
         {
-            readWriteLock.lockWrite();
-            _store[key] = value;
-            readWriteLock.unlockWrite();
+            //await Task.Run(() =>
+            //{
+                readWriteLock.lockWrite();
+                _store[key] = value;
+                readWriteLock.unlockWrite();
+            //});
+            
         }
 
         /// <summary>
@@ -99,7 +104,7 @@ namespace Tracker
         public void lockWrite()
         {
             while (Interlocked.CompareExchange(ref state, 1, 0) != 0)
-                Thread.Yield();
+                 Thread.Yield();
         }
 
         /// <summary>
