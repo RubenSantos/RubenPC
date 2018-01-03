@@ -9,51 +9,107 @@ namespace TestClient
     {
         private static ushort port = 8080;
 
-        private static void Set(string key, string value)
+        private static void Shutdown()
         {
-            using(TcpClient client = new TcpClient())
+            using (TcpClient client = new TcpClient())
             {
                 client.Connect(IPAddress.Loopback, port);
-
                 StreamWriter output = new StreamWriter(client.GetStream());
                 StreamReader input = new StreamReader(client.GetStream());
-
-                // Send request type line
-                output.WriteLine("SET {0} {1}", key, value);
+                output.WriteLine("SHUTDOWN");
                 output.Flush();
-                string line = input.ReadLine();
-                input.ReadLine();
-                if (line != "OK") throw new Exception("Invalid response format");
-
+                Console.WriteLine(input.ReadLine());
                 output.Close();
                 client.Close();
             }
         }
 
+        private static void Keys()
+        {
+            try
+            {
+                using (TcpClient client = new TcpClient())
+                {
+                    client.Connect(IPAddress.Loopback, port);
+                    StreamWriter output = new StreamWriter(client.GetStream());
+                    StreamReader input = new StreamReader(client.GetStream());
+                    output.WriteLine("KEYS");
+                    output.Flush();
+                    string line;
+                    while (!string.IsNullOrEmpty(line = input.ReadLine()))
+                        Console.WriteLine(line);
+                    output.Close();
+                    client.Close();
+                }
+            }catch(Exception ex)
+            {
+                Console.WriteLine("KEYS instruction not executed");
+                Console.WriteLine(ex.Message);
+            }
+            
+        }
+
+        private static void Set(string key, string value)
+        {
+            try
+            {
+                using (TcpClient client = new TcpClient())
+                {
+                    client.Connect(IPAddress.Loopback, port);
+
+                    StreamWriter output = new StreamWriter(client.GetStream());
+                    StreamReader input = new StreamReader(client.GetStream());
+
+                    // Send request type line
+                    output.WriteLine("SET {0} {1}", key, value);
+                    output.Flush();
+                    string line = input.ReadLine();
+                    input.ReadLine();
+                    if (line != "OK") throw new Exception("Invalid response format");
+
+                    output.Close();
+                    client.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SET instruction not executed");
+                Console.WriteLine(ex.Message);
+            }
+        }
+
         private static string Get(string key)
         {
-            using (TcpClient client = new TcpClient())
+            try
             {
-                client.Connect(IPAddress.Loopback, port);
-
-                StreamWriter output = new StreamWriter(client.GetStream());
-                StreamReader input = new StreamReader(client.GetStream());
-
-                // Send request type line
-                output.WriteLine("GET {0}", key);
-                output.Flush();
-                string line = input.ReadLine();
-                input.ReadLine();               
-
-                output.Close();
-                client.Close();
-                if (line == "(nil)")
-					return null;
-                if(line.StartsWith("\"") && line.EndsWith("\""))
+                using (TcpClient client = new TcpClient())
                 {
-                    return line.Substring(1, line.Length - 2);
+                    client.Connect(IPAddress.Loopback, port);
+
+                    StreamWriter output = new StreamWriter(client.GetStream());
+                    StreamReader input = new StreamReader(client.GetStream());
+
+                    // Send request type line
+                    output.WriteLine("GET {0}", key);
+                    output.Flush();
+                    string line = input.ReadLine();
+                    input.ReadLine();               
+
+                    output.Close();
+                    client.Close();
+                    if (line == "(nil)")
+					    return null;
+                    if(line.StartsWith("\"") && line.EndsWith("\""))
+                    {
+                        return line.Substring(1, line.Length - 2);
+                    }
+                    throw new Exception("Invalid response format");
                 }
-                throw new Exception("Invalid response format");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return "GET instruction not executed";
             }
         }              
 
@@ -78,7 +134,14 @@ namespace TestClient
 			string k1_value;
             Console.WriteLine("Get(\"k1\"): {0}", (k1_value = Get("k1")) == null ? "undef" : k1_value);
             Set("k1", "v1");
+            Set("k1", "v2");
             Console.WriteLine("Get(\"k1\"): {0}", (k1_value = Get("k1"))== null ? "undef" : k1_value);
+            Set("k2", "v3");
+            Console.WriteLine("Get(\"k2\"): {0}", (k1_value = Get("k2")) == null ? "undef" : k1_value);
+            Keys();
+            Shutdown();
+            Keys();
+            Set("k2", "v4");
             Console.ReadKey();
         }
     }

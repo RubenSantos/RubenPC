@@ -27,20 +27,32 @@ namespace Tracker
         /// <summary>
         /// Data structure that supports message processing dispatch.
         /// </summary>
-        private static readonly Dictionary<string, Action<string[], StreamWriter, Logger>> MESSAGE_HANDLERS;
+        private static readonly Dictionary<string, Action<string[], StreamWriter, Logger, CancellationTokenSource>> MESSAGE_HANDLERS;
 
         static Handler()
         {
-            MESSAGE_HANDLERS = new Dictionary<string, Action<string[], StreamWriter, Logger>>();
+            MESSAGE_HANDLERS = new Dictionary<string, Action<string[], StreamWriter, Logger, CancellationTokenSource>>();
             MESSAGE_HANDLERS["SET"] = ProcessSetMessage;
             MESSAGE_HANDLERS["GET"] = ProcessGetMessage;
-            MESSAGE_HANDLERS["KEYS"] = ProcessKeysMessage;            
+            MESSAGE_HANDLERS["KEYS"] = ProcessKeysMessage;
+            MESSAGE_HANDLERS["SHUTDOWN"] = ProcessShutdown;
+        }
+
+        private static void ProcessShutdown(string[] cmd, StreamWriter wr, Logger log, CancellationTokenSource cts)
+        {
+            if (cmd.Length - 1 != 0)
+            {
+                wr.WriteLine("(error) wrong number of arguments (given {0}, expected 0)\n", cmd.Length - 1);
+            }
+            cts.Cancel();
+            log.LogMessage("SHUTDOWN");
+            wr.WriteLineAsync("The server will shutdown");
         }
 
         /// <summary>
         /// Handles SET messages.
         /// </summary>
-        private static void ProcessSetMessage(string[] cmd, StreamWriter wr, Logger log)
+        private static void ProcessSetMessage(string[] cmd, StreamWriter wr, Logger log, CancellationTokenSource cts)
         {
             if (cmd.Length - 1 != 2)
             {
@@ -49,13 +61,14 @@ namespace Tracker
             string key = cmd[1];
             string value = cmd[2];
             Store.Instance.Set(key, value);
+            log.LogMessage(string.Format("{0} at {1}",cmd.ToString(), DateTime.Now));
             wr.WriteLine("OK\n");
         }
 
         /// <summary>
         /// Handles GET messages.
         /// </summary>
-        private static void ProcessGetMessage(string[] cmd, StreamWriter wr, Logger log)
+        private static void ProcessGetMessage(string[] cmd, StreamWriter wr, Logger log, CancellationTokenSource cts)
         {
             if(cmd.Length - 1 != 1)
             {
@@ -75,7 +88,7 @@ namespace Tracker
         /// <summary>
         /// Handles KEYS messages.
         /// </summary>
-        private static void ProcessKeysMessage(string[] cmd, StreamWriter wr, Logger log)
+        private static void ProcessKeysMessage(string[] cmd, StreamWriter wr, Logger log, CancellationTokenSource cts)
         {
             if (cmd.Length -1 != 0)
             {
@@ -104,16 +117,19 @@ namespace Tracker
         /// </summary>
         private readonly Logger log;
 
+        private readonly CancellationTokenSource cts;
+
         /// <summary>
         ///	Initiates an instance with the given parameters.
         /// </summary>
         /// <param name="connection">The TCP connection to be used.</param>
         /// <param name="log">the Logger instance to be used.</param>
-        public Handler(Stream connection, Logger log)
+        public Handler(Stream connection, Logger log, CancellationTokenSource cts)
         {
             this.log = log;
             output = new StreamWriter(connection);
             input = new StreamReader(connection);
+            this.cts = cts;
         }
 
         /// <summary>
@@ -127,14 +143,14 @@ namespace Tracker
                 while ((request = input.ReadLine()) != null && request != string.Empty)
                 {
                     string[] cmd = request.Trim().Split(' ');
-                    Action<string[], StreamWriter, Logger> handler = null;
+                    Action<string[], StreamWriter, Logger, CancellationTokenSource> handler = null;
                     if (cmd.Length < 1 || !MESSAGE_HANDLERS.TryGetValue(cmd[0], out handler))
                     {
                         log.LogMessage("(error) unnown message type");
                         return;
                     }
                     // Dispatch request processing
-                    handler(cmd, output, log);
+                    handler(cmd, output, log, cts);
                     output.Flush();
                 }
             }
@@ -162,7 +178,7 @@ namespace Tracker
         /// </summary>
         private readonly int portNumber;
 
-        private readonly int MAX_ACTIVE_CONNECTIONS = 1;
+        private readonly int MAX_ACTIVE_CONNECTIONS = 2;
 
         CancellationTokenSource cts = new CancellationTokenSource();
 
@@ -212,7 +228,7 @@ namespace Tracker
                             if (!cToken.IsCancellationRequested && Interlocked.Decrement(ref activeConnections) == MAX_ACTIVE_CONNECTIONS - 1)
                                 server.AcceptTcpClientAsync().ContinueWith(action);
                             else if (cToken.IsCancellationRequested && Interlocked.Decrement(ref activeConnections) == 0)
-                                tcs.SetResult(true);
+                                tcs.TrySetResult(true);
                         }, TaskContinuationOptions.ExecuteSynchronously);
                     }
                 }
@@ -229,7 +245,7 @@ namespace Tracker
         {
             server.LingerState = new LingerOption(true, 10);
             logger.LogMessage(String.Format("Listener - Connection established with {0}.", server.Client.RemoteEndPoint));
-            Handler handler = new Handler(server.GetStream(), logger);
+            Handler handler = new Handler(server.GetStream(), logger, cts);
             return handler.Run();
         }
 
@@ -273,6 +289,7 @@ namespace Tracker
             {
                 log.Stop();
             }
+            Console.ReadLine();
         }
     }
 }

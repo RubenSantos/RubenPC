@@ -56,14 +56,11 @@ namespace Tracker
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
-        public async Task Set(string key, string value)
+        public void Set(string key, string value)
         {
-            //await Task.Run(() =>
-            //{
-                readWriteLock.lockWrite();
-                _store[key] = value;
-                readWriteLock.unlockWrite();
-            //});
+            readWriteLock.lockWrite();
+            _store[key] = value;
+            readWriteLock.unlockWrite();
             
         }
 

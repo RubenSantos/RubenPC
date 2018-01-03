@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2010
+VisualStudioVersion = 15.0.27004.2006
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils", "SynchUtils\Utils.csproj", "{64E1F09E-C0FF-469D-BCBF-29ADD1E0E89B}"
 EndProject
@@ -10,12 +10,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serie1Tests", "Serie1Tests\Serie1Tests.csproj", "{627169CD-F524-4267-B8EF-EFC7502E7B50}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serie2", "Serie2\Serie2.csproj", "{90073204-7848-42D9-9F7B-BF3F63B48462}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TP3", "TP3", "{F92947D5-E0AB-4B71-B654-670B04D7E0AF}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EchoServerAsync", "..\..\s1718i-li51n\DotNet\EchoServerAsync\EchoServerAsync.csproj", "{28039B11-7620-4C8B-BEDA-AED0107C3469}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EchoClient", "..\..\s1718i-li51n\DotNet\EchoClient\EchoClient.csproj", "{875D8B31-1EFE-472B-9DF9-994D7C5190A5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serie3", "Serie3\Serie3.csproj", "{74EA029D-8E53-4A73-8773-FD6EC06CC583}"
 EndProject
@@ -43,14 +37,6 @@ Global
 		{90073204-7848-42D9-9F7B-BF3F63B48462}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{90073204-7848-42D9-9F7B-BF3F63B48462}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{90073204-7848-42D9-9F7B-BF3F63B48462}.Release|Any CPU.Build.0 = Release|Any CPU
-		{28039B11-7620-4C8B-BEDA-AED0107C3469}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{28039B11-7620-4C8B-BEDA-AED0107C3469}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{28039B11-7620-4C8B-BEDA-AED0107C3469}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{28039B11-7620-4C8B-BEDA-AED0107C3469}.Release|Any CPU.Build.0 = Release|Any CPU
-		{875D8B31-1EFE-472B-9DF9-994D7C5190A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{875D8B31-1EFE-472B-9DF9-994D7C5190A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{875D8B31-1EFE-472B-9DF9-994D7C5190A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{875D8B31-1EFE-472B-9DF9-994D7C5190A5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{74EA029D-8E53-4A73-8773-FD6EC06CC583}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{74EA029D-8E53-4A73-8773-FD6EC06CC583}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{74EA029D-8E53-4A73-8773-FD6EC06CC583}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -62,10 +48,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{28039B11-7620-4C8B-BEDA-AED0107C3469} = {F92947D5-E0AB-4B71-B654-670B04D7E0AF}
-		{875D8B31-1EFE-472B-9DF9-994D7C5190A5} = {F92947D5-E0AB-4B71-B654-670B04D7E0AF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {18FD87F6-430D-443E-A6FF-B25857A06549}
