@@ -135,7 +135,7 @@ namespace Tracker
         /// <summary>
         /// Performs request servicing.
         /// </summary>
-        public async Task Run()
+        public void Run()
         {
             try
             {
@@ -218,19 +218,19 @@ namespace Tracker
             {
                 try
                 {
-                    using (TcpClient tcpClient = task.Result)
+                    TcpClient tcpClient = task.Result;
+                    if (!cToken.IsCancellationRequested && Interlocked.Increment(ref activeConnections) < MAX_ACTIVE_CONNECTIONS)
+                        server.AcceptTcpClientAsync().ContinueWith(action);
+                    HandlerRunnerAsync(tcpClient, logger).ContinueWith(t =>
                     {
-                        int currActive = Interlocked.Increment(ref activeConnections);
-                        if (!cToken.IsCancellationRequested && currActive < MAX_ACTIVE_CONNECTIONS)
+                        if (!cToken.IsCancellationRequested && Interlocked.Decrement(ref activeConnections) == MAX_ACTIVE_CONNECTIONS - 1)
                             server.AcceptTcpClientAsync().ContinueWith(action);
-                        HandlerRunner(tcpClient, logger).ContinueWith(t =>
+                        else if (cToken.IsCancellationRequested && Interlocked.Decrement(ref activeConnections) == 0)
                         {
-                            if (!cToken.IsCancellationRequested && Interlocked.Decrement(ref activeConnections) == MAX_ACTIVE_CONNECTIONS - 1)
-                                server.AcceptTcpClientAsync().ContinueWith(action);
-                            else if (cToken.IsCancellationRequested && Interlocked.Decrement(ref activeConnections) == 0)
-                                tcs.TrySetResult(true);
-                        }, TaskContinuationOptions.ExecuteSynchronously);
-                    }
+                            tcpClient.Close();
+                            tcs.TrySetResult(true);
+                        }
+                    }, TaskContinuationOptions.ExecuteSynchronously);
                 }
                 catch (SocketException sockex)
                 {
@@ -241,12 +241,49 @@ namespace Tracker
             return tcs.Task;
         }
 
-        private Task HandlerRunner(TcpClient server, Logger logger)
+        private IAsyncResult BeginListen(TcpListener server, Logger logger, CancellationToken cToken, AsyncCallback acb, object state)
+        {
+            GenericAsyncResult<bool> gar = new GenericAsyncResult<bool>(acb, state, false);
+            int activeConnections = 0;
+            TcpClient tcpClient = null;
+            server.BeginAcceptTcpClient(onAcceptClient, null);
+            void onAcceptClient(IAsyncResult ar)
+            {
+                tcpClient = server.EndAcceptTcpClient(ar);
+                if (!cToken.IsCancellationRequested && Interlocked.Increment(ref activeConnections) < MAX_ACTIVE_CONNECTIONS)
+                    server.BeginAcceptTcpClient(onAcceptClient, null);
+                BeginHandlerRunner(tcpClient, logger, onHandlerRunner, null);
+            }
+            void onHandlerRunner(IAsyncResult ar){
+                if (!cToken.IsCancellationRequested && Interlocked.Decrement(ref activeConnections) == MAX_ACTIVE_CONNECTIONS - 1)
+                    server.BeginAcceptTcpClient(onAcceptClient, null);
+                else if(cToken.IsCancellationRequested && Interlocked.Decrement(ref activeConnections) == 0)
+                {
+                    tcpClient.Close();
+                    gar.SetResult(true);
+                }
+            }
+            return gar;
+        }
+
+        private bool EndListen(IAsyncResult ar)
+        {
+            return ((GenericAsyncResult<bool>)ar).Result;
+        }
+
+        private void BeginHandlerRunner(TcpClient server, Logger logger, AsyncCallback acb, object state)
         {
             server.LingerState = new LingerOption(true, 10);
             logger.LogMessage(String.Format("Listener - Connection established with {0}.", server.Client.RemoteEndPoint));
-            Handler handler = new Handler(server.GetStream(), logger, cts);
-            return handler.Run();
+            new Handler(server.GetStream(), logger, cts).Run();
+            acb.Invoke(null);
+        }
+
+        private Task HandlerRunnerAsync(TcpClient server, Logger logger)
+        {
+            server.LingerState = new LingerOption(true, 10);
+            logger.LogMessage(String.Format("Listener - Connection established with {0}.", server.Client.RemoteEndPoint));
+            return Task.Run(() => new Handler(server.GetStream(), logger, cts).Run());
         }
 
     }

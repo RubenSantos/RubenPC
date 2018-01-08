@@ -51,5 +51,11 @@
   <ItemGroup>
     <None Include="Server\.DS_Store" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SynchUtils\Utils.csproj">
+      <Project>{64e1f09e-c0ff-469d-bcbf-29add1e0e89b}</Project>
+      <Name>Utils</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

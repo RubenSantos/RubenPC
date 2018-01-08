@@ -100,8 +100,7 @@ namespace Tracker
         /// </summary>
         public void lockWrite()
         {
-            while (Interlocked.CompareExchange(ref state, 1, 0) != 0)
-                 Thread.Yield();
+            while (Interlocked.CompareExchange(ref state, 1, 0) != 0) ;
         }
 
         /// <summary>
@@ -120,7 +119,7 @@ namespace Tracker
             do
             {
                 int obs = state;
-                if (obs < 0) Thread.Yield();
+                if (obs < 0) continue;
                 else if (Interlocked.CompareExchange(ref state, obs + 1, obs) == obs)
                     return;
             }
