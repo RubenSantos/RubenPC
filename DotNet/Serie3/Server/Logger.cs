@@ -11,6 +11,8 @@
 
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Tracker
 {
@@ -39,7 +41,10 @@ namespace Tracker
 
 		public void LogMessage(string msg)
 		{
-			writer.WriteLine(String.Format("{0}: {1}", DateTime.Now, msg));
+            new Thread(() => writer.WriteLineAsync(String.Format("{0}: {1}", DateTime.Now, msg)))
+            {
+                Priority = ThreadPriority.Lowest
+            }.Start();
 		}
 
 		public void IncrementRequests()

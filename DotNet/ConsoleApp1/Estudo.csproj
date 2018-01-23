@@ -42,13 +42,23 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExplicitMonitors.cs" />
     <Compile Include="GenericAsyncResult.cs" />
     <Compile Include="PC_1415i_2_Ex4.cs" />
+    <Compile Include="PC_1516i_1_Ex1.cs" />
     <Compile Include="PC_1516i_1_Ex4e5.cs" />
+    <Compile Include="PC_1516i_2.cs" />
+    <Compile Include="PC_1516v_1_Ex4e5.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SynchUtils\Utils.csproj">
+      <Project>{64E1F09E-C0FF-469D-BCBF-29ADD1E0E89B}</Project>
+      <Name>Utils</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

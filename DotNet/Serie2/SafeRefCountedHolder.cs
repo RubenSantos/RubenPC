@@ -2,38 +2,59 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Serie2
 {
     class SafeRefCountedHolder<T> where T : class
     {
-        private T value;
-        private int refCount;
+        private class Holder
+        {
+            internal readonly T value;
+            internal readonly int refCount;
+
+            internal Holder(T t, int count)
+            {
+                value = t;
+                refCount = count;
+            }
+        }
+
+        private Holder holder;
 
         public SafeRefCountedHolder(T t)
         {
-            value = t;
-            refCount = 1;
+            holder = new Holder(t, 1);
         }
 
         public void AddRef()
         {
-            if (refCount == 0)
-                throw new InvalidOperationException();
-            refCount++;
+            while (true)
+            {
+                if (holder.refCount == 0)
+                    throw new InvalidOperationException();
+                Holder lh = holder;
+                if (Interlocked.CompareExchange(ref holder, new Holder(lh.value, lh.refCount + 1), lh) != lh)
+                    return;
+            }
+            
         }
 
         public void ReleaseRef()
         {
-            if (refCount == 0)
-                throw new InvalidOperationException();
-            if(--refCount == 0)
+
+            while (true)
             {
-                IDisposable disposable = value as IDisposable;
-                value = null;
-                if (disposable != null)
-                    disposable.Dispose();
+                if (holder.refCount == 0)
+                    throw new InvalidOperationException();
+                Holder lh = holder;
+                IDisposable disposable = lh.value as IDisposable;
+                if (Interlocked.CompareExchange(ref holder, new Holder(null, 0), lh) != lh)
+                {
+                    if (disposable != null)
+                        disposable.Dispose();
+                }
             }
         }
 
@@ -41,11 +62,10 @@ namespace Serie2
         {
             get
             {
-                if (refCount == 0)
+                if (holder.refCount == 0)
                     throw new InvalidOperationException();
-                return value;
+                return holder.value;
             }
         }
-
     }
 }
